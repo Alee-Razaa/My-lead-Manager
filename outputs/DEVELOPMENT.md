@@ -1,6 +1,6 @@
 # Lead Workspace — development plan
 
-Status: proposed implementation plan, ready for review. No application or AI integration has been built.
+Status: active implementation specification. Foundation and import preview are built; hosted persistence is in progress.
 Prepared: 2026-09-24.
 
 ## 1. Release outcome
@@ -13,16 +13,16 @@ Release gate: a real ten-lead batch can move from multiple imports through resea
 
 ## 2. Form factor and architecture
 
-Build a single-user local web application, bound to localhost by default. Browser UI and a local Node service share one repository and source tree. Keep an independently runnable background worker for durable tasks; do not keep long research work alive inside a page request. The machine must remain running for jobs to progress. Hosted deployment, multi-user access, and desktop packaging are later phases.
+Build a single-user protected web application that runs locally for development and on Vercel for access. Browser UI and server routes share one repository and source tree. Supabase Postgres is the durable system of record. Keep long research work in durable background tasks rather than inside a page request. Use Vercel Authentication to protect every deployment until application-level authentication is implemented. Multi-user access and desktop packaging are later phases.
 
-Proposed stack: Node 24 LTS family; Next.js App Router and React with strict TypeScript; SQLite for operational transactions; a validated schema layer; one workbook adapter; accessible reusable UI primitives; unit/integration tests plus Playwright end-to-end checks. Resolve and pin compatible package versions during the foundation milestone, after checking existing packages and official documentation. Prefer installed suitable libraries over adding overlapping ones.
+Stack: Node 24 LTS family; Next.js 16 App Router and React with strict TypeScript; Supabase Postgres through Postgres.js for operational transactions; Supabase CLI for project configuration; a validated schema layer; one workbook adapter; accessible reusable UI primitives; unit/integration tests plus browser checks. Vercel serverless connections use transaction pooling, a one-connection application pool, disabled prepared statements, and required TLS.
 
-Runtime inspected: Node v24.19.0, Git 2.52.0.windows.1, and ripgrep available. npm was not discoverable on PATH and the inspected Node bin folder contains only node.exe. Resolve a supported package manager before scaffolding. Local Git is initialized on `main`; `origin` is connected to `https://github.com/Alee-Razaa/My-lead-Manager.git`. The remote is currently empty, so there is no upstream history to merge.
+Runtime inspected: Node v24.19.0, pnpm v11.19.0, Git 2.52.0.windows.1, and ripgrep. Dependencies are pinned in one pnpm lockfile. Local `main` tracks the GitHub repository at `origin`.
 
 ```
 Browser screens
     -> validated application services
-    -> domain rules + SQLite transactions + durable task queue
+    -> domain rules + Supabase Postgres transactions + durable task queue
     -> background worker
        -> research adapter / AI adapter / document renderer
     -> export outbox -> single Excel writer -> verified workbook revision
@@ -42,11 +42,11 @@ src/
   tests/               integration, end-to-end and synthetic fixtures
 ```
 
-Unit tests may be colocated under src. Root files contain build/tool configuration only. `data/` stores private originals, the database, workbook, backups, and generated packages outside Git. `work/` stores disposable development notes. `outputs/` contains maintained review documents.
+Unit tests may be colocated under src. Root files contain build/tool configuration only. `supabase/` contains generated project configuration; application-owned migrations and schemas remain under `src/`. `data/` stores private local originals, workbook copies, backups, and generated packages outside Git. Hosted private files will use a non-public Supabase Storage bucket when that adapter is implemented. `work/` stores disposable development notes. `outputs/` contains maintained review documents.
 
 ## 3. The workbook is the lasting business asset
 
-SQLite is the transactional execution store. The primary Excel workbook is the required durable, portable business record, not a casual optional export. This split avoids having parallel workers mutate an open spreadsheet.
+Supabase Postgres is the transactional execution store. The primary Excel workbook is the required durable, portable business record, not a casual optional export. This split avoids having parallel workers mutate an open spreadsheet.
 
 Required workbook sheets:
 - Master_Leads: permanent ID, consolidated information, current workflow assessment, stage and latest outcome.
@@ -59,7 +59,7 @@ Required workbook sheets:
 
 Create stable IDs before enrichment. Preserve raw source values separately from researched values. Store workflow-specific attributes in an extensible structure with selected readable workbook columns. For oversized descriptions or artifacts, store durable relative references with hashes; never silently truncate or lose Excel cell overflow.
 
-Synchronization protocol: commit operation plus export-outbox item in one database transaction; one writer exports to a temporary file, verifies sheets/IDs/counts, then replaces the workbook while keeping a backup. Record the exported revision. SQLite and XLSX are not one atomic transaction: expose pending, saved, and failed synchronization states honestly. A workbook lock must produce a retryable error, not overwrite data or claim success. Restart retries the same revision idempotently.
+Synchronization protocol: commit operation plus export-outbox item in one database transaction; one writer exports to a temporary file, verifies sheets/IDs/counts, then replaces the workbook while keeping a backup. Record the exported revision. Postgres and XLSX are not one atomic transaction: expose pending, saved, and failed synchronization states honestly. A workbook lock must produce a retryable error, not overwrite data or claim success. Restart retries the same revision idempotently.
 
 Detect external workbook edits using revision/hash checks. Provide an import/reconcile preview using stable IDs. Preserve manual notes, surface conflicts, and pause export until resolved. Do not attempt invisible bidirectional synchronization. Include tested backup/restore and workbook-to-database recovery for supported fields; originals and artifacts need the full data-folder backup.
 
@@ -110,7 +110,7 @@ Screen layout: compact left navigation, central working surface, contextual righ
 
 ## 8. Implementation milestones and gates
 
-M0 — Foundation: resolve package manager, inspect versions, initialize app in existing root, establish one lockfile, environment example, schema/migrations, design tokens, lint/type/test scripts. Check boot and production build. No second project folder.
+M0 — Foundation (complete): resolved package manager, initialized the app in the existing root, established one lockfile, environment example, Postgres schema/migrations, design tokens, and lint/type/test scripts. Boot and production build verified. No second project folder.
 
 M1 — Data spine: multiple imports, mapping preview, provenance, dedup review, batch reservation, master workbook writer and reconciliation detection. Gate: synthetic uneven files round-trip without data loss; duplicate import adds no repeated leads; locked workbook recovers.
 
@@ -120,7 +120,7 @@ M3 — Ready-to-apply packages: official approach routes, grounded resume output
 
 M4 — Release hardening: run one user-supplied ten-lead batch, measure fit accuracy, verify evidence and contacts, inspect accessibility and visual states, test restore, and document startup/provider costs and limits. This is the end of version 1, not an optional phase after release.
 
-Later: additional workflow templates; shared access and permissions; hosted workers; advanced workflow graph editing; optional authorized integrations. Automatic sending/submission is outside version 1.
+Later: additional workflow templates; shared access and permissions; advanced workflow graph editing; optional authorized integrations. Automatic sending/submission is outside version 1.
 
 ## 9. Test priority
 
