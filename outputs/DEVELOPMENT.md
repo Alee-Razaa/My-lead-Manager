@@ -1,6 +1,6 @@
 # Lead Workspace — development plan
 
-Status: active implementation specification. Foundation and import preview are built; hosted persistence is in progress.
+Status: active implementation specification. Foundation, import preview, hosted persistence, and database security are built; batch processing and ready-to-apply automation remain next.
 Prepared: 2026-09-24.
 
 ## 1. Release outcome
@@ -111,6 +111,8 @@ Screen layout: compact left navigation, central working surface, contextual righ
 ## 8. Implementation milestones and gates
 
 M0 — Foundation (complete): resolved package manager, initialized the app in the existing root, established one lockfile, environment example, Postgres schema/migrations, design tokens, and lint/type/test scripts. Boot and production build verified. No second project folder.
+
+Hosted persistence checkpoint (complete): linked the Supabase project, applied the live migrations, enabled row-level security and denied public table access, verified idempotent import behavior against the live database, and pushed the implementation to the GitHub `main` branch.
 
 M1 — Data spine: multiple imports, mapping preview, provenance, dedup review, batch reservation, master workbook writer and reconciliation detection. Gate: synthetic uneven files round-trip without data loss; duplicate import adds no repeated leads; locked workbook recovers.
 
