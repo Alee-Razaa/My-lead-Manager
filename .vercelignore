@@ -1,0 +1,8 @@
+.env*
+!.env.example
+work/
+data/
+.agents/
+.git/
+node_modules/
+.next/

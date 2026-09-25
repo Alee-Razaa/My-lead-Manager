@@ -40,7 +40,7 @@ export async function getDatabase(): Promise<Sql> {
       idle_timeout: 20,
     });
   }
-  migrationReady ??= migrate(client);
+  migrationReady ??= migrate(client).catch((error) => { migrationReady = undefined; throw error; });
   await migrationReady;
   return client;
 }

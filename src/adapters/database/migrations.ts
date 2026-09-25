@@ -92,4 +92,30 @@ export const migrations = [
       REVOKE ALL PRIVILEGES ON SEQUENCE export_outbox_revision_seq FROM anon, authenticated;
     `,
   },
+  {
+    version: 3,
+    sql: `
+      ALTER TABLE leads ADD COLUMN IF NOT EXISTS notes TEXT NOT NULL DEFAULT '';
+      ALTER TABLE leads ADD COLUMN IF NOT EXISTS rationale TEXT NOT NULL DEFAULT '';
+      ALTER TABLE leads ADD COLUMN IF NOT EXISTS approach_url TEXT NOT NULL DEFAULT '';
+      ALTER TABLE leads ADD COLUMN IF NOT EXISTS draft TEXT NOT NULL DEFAULT '';
+      ALTER TABLE leads ADD COLUMN IF NOT EXISTS evidence TEXT NOT NULL DEFAULT '';
+      ALTER TABLE leads ADD COLUMN IF NOT EXISTS version INTEGER NOT NULL DEFAULT 1;
+      CREATE TABLE decision_history (
+        id UUID PRIMARY KEY, lead_id UUID NOT NULL REFERENCES leads(id),
+        previous_decision TEXT NOT NULL, decision TEXT NOT NULL, rationale TEXT NOT NULL,
+        version INTEGER NOT NULL, occurred_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      );
+      CREATE TABLE workspace_settings (
+        id INTEGER PRIMARY KEY CHECK (id = 1), profile TEXT NOT NULL DEFAULT '',
+        criteria TEXT NOT NULL DEFAULT '', updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      );
+      ALTER TABLE decision_history ENABLE ROW LEVEL SECURITY;
+      ALTER TABLE workspace_settings ENABLE ROW LEVEL SECURITY;
+      REVOKE ALL ON decision_history, workspace_settings FROM anon, authenticated;
+      CREATE INDEX ON source_records(lead_id);
+      CREATE INDEX ON activities(lead_id);
+      CREATE INDEX ON batch_members(lead_id);
+    `,
+  },
 ] as const;

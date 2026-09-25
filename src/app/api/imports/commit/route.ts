@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getImportStore } from "@/adapters/database/database";
 import { commitParsedFiles } from "@/services/imports/commit";
 import { parseLeadFile } from "@/services/imports/parse";
+import { applyMappings } from "@/services/imports/overrides";
 
 export const runtime = "nodejs";
 
@@ -13,7 +14,8 @@ export async function POST(request: Request) {
     if (files.length > 10) return NextResponse.json({ error: "Import up to 10 files at a time." }, { status: 400 });
     const parsed = await Promise.all(files.map(async (file) => parseLeadFile(file.name, Buffer.from(await file.arrayBuffer()))));
     const store = await getImportStore();
-    return NextResponse.json({ summary: await commitParsedFiles(store, parsed) });
+    const configuration = form.get("mappings");
+    return NextResponse.json({ summary: await commitParsedFiles(store, applyMappings(parsed, typeof configuration === "string" ? configuration : null)) });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Import failed.";
     return NextResponse.json({ error: message }, { status: 400 });

@@ -1,6 +1,7 @@
 # Lead Workspace — development plan
 
 Status: active implementation specification. Foundation, import preview, hosted persistence, and database security are built; batch processing and ready-to-apply automation remain next.
+Manual pilot checkpoint (2026-09-25): AI setup is deferred at the user's request. The experimental release provides authenticated imports, editable mappings, saved manual batches, decision history, research notes, approach links/drafts, Ready and Activity screens, profile settings, Excel snapshots and JSON backups. Automated research, resume generation, automatic workbook synchronization, workbook restore/reconciliation and durable AI workers remain future milestones. Do not describe this pilot as the full automated release gate below.
 Prepared: 2026-09-24.
 
 ## 1. Release outcome
@@ -14,6 +15,7 @@ Release gate: a real ten-lead batch can move from multiple imports through resea
 ## 2. Form factor and architecture
 
 Build a single-user protected web application that runs locally for development and on Vercel for access. Browser UI and server routes share one repository and source tree. Supabase Postgres is the durable system of record. Keep long research work in durable background tasks rather than inside a page request. Use Vercel Authentication to protect every deployment until application-level authentication is implemented. Multi-user access and desktop packaging are later phases.
+The manual pilot uses an application password with signed, expiring HttpOnly sessions, protected page/API routes, and same-origin mutation checks. A generated high-entropy password is kept in ignored local storage and Vercel secret configuration. Production no longer relies on an unverified assumption that Vercel deployment protection is enabled.
 
 Stack: Node 24 LTS family; Next.js 16 App Router and React with strict TypeScript; Supabase Postgres through Postgres.js for operational transactions; Supabase CLI for project configuration; a validated schema layer; one workbook adapter; accessible reusable UI primitives; unit/integration tests plus browser checks. Vercel serverless connections use transaction pooling, a one-connection application pool, disabled prepared statements, and required TLS.
 
@@ -60,6 +62,7 @@ Required workbook sheets:
 Create stable IDs before enrichment. Preserve raw source values separately from researched values. Store workflow-specific attributes in an extensible structure with selected readable workbook columns. For oversized descriptions or artifacts, store durable relative references with hashes; never silently truncate or lose Excel cell overflow.
 
 Synchronization protocol: commit operation plus export-outbox item in one database transaction; one writer exports to a temporary file, verifies sheets/IDs/counts, then replaces the workbook while keeping a backup. Record the exported revision. Postgres and XLSX are not one atomic transaction: expose pending, saved, and failed synchronization states honestly. A workbook lock must produce a retryable error, not overwrite data or claim success. Restart retries the same revision idempotently.
+Pilot limitation: the export route produces a consistent database snapshot for download, with the revision and export time. Downloading does not mark the outbox saved or claim that a permanent workbook was synchronized. Original values are stored as literal XLSX cells; oversized cells fail visibly and a full JSON backup remains available.
 
 Detect external workbook edits using revision/hash checks. Provide an import/reconcile preview using stable IDs. Preserve manual notes, surface conflicts, and pause export until resolved. Do not attempt invisible bidirectional synchronization. Include tested backup/restore and workbook-to-database recovery for supported fields; originals and artifacts need the full data-folder backup.
 
