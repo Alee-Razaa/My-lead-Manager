@@ -6,6 +6,8 @@ playwright-report/
 test-results/
 .env*
 !.env.example
+.agents/
+skills-lock.json
 data/
 work/
 *.log
